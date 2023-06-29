@@ -5,7 +5,8 @@ import jwt
 import datetime
 import collections
 import collections.abc
-
+import os
+import json
 
 app = Flask(__name__)
 
@@ -36,6 +37,16 @@ def token_required(f):
         else:
             return "You need to provide token to use the function!"
     return decorated
+
+class create_dict(dict): 
+  
+    # __init__ function 
+    def __init__(self): 
+        self = dict() 
+          
+    # Function to add key:value 
+    def add(self, key, value): 
+        self[key] = value
 
 # Handles signup
 @app.route("/signup")
@@ -90,8 +101,9 @@ def login():
 @app.route('/', methods = ['GET'])
 def showAll():
     conn = sqlite3.connect("database.db")
-    Thumbnails = conn.execute("SELECT Thumbnail_Filename FROM Available_Movies WHERE Status = 'Active'").fetchall()
-    for i in Thumbnails:
-        item = list(i)
-        return send_from_directory(app.config["Thumbnail_Folder"], item[0])
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename FROM Available_Movies WHERE Status = "Active"''').fetchall()
+    index_data = create_dict()
+    for item in Cursor:
+        index_data.add(item[0], {"id": item[0], "title": item[1], "file": os.path.abspath("Thumbnails/"+item[2])})
     conn.commit()
+    return index_data
