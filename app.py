@@ -38,16 +38,6 @@ def token_required(f):
             return "You need to provide token to use the function!"
     return decorated
 
-class create_dict(dict): 
-  
-    # __init__ function 
-    def __init__(self): 
-        self = dict() 
-          
-    # Function to add key:value 
-    def add(self, key, value): 
-        self[key] = value
-
 # Handles signup
 @app.route("/signup")
 def signup():
@@ -102,8 +92,8 @@ def login():
 def showAll():
     conn = sqlite3.connect("database.db")
     Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename FROM Available_Movies WHERE Status = "Active"''').fetchall()
-    index_data = create_dict()
+    index_data = []
     for item in Cursor:
-        index_data.add(item[0], {"id": item[0], "title": item[1], "file": os.path.abspath("Thumbnails/"+item[2])})
+        index_data.append({"id" : item[0], "title" : item[1], "file" : os.path.abspath("Thumbnails/"+item[2])})
     conn.commit()
     return index_data
