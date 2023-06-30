@@ -112,39 +112,39 @@ def showActionMovies():
 def showHorrorMovies():
     conn = sqlite3.connect("database.db")
     Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Horror" AND Status = "Active"''').fetchall()
-    index_data_action = []
+    index_data_horror = []
     for item in Cursor:
-        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_horror.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
     conn.commit()
-    return index_data_action
+    return index_data_horror
 
 @app.route('/movies/sci-fi', methods = ['GET'])
 def showSciFiMovies():
     conn = sqlite3.connect("database.db")
     Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Sci-Fi" AND Status = "Active"''').fetchall()
-    index_data_action = []
+    index_data_sci_fi = []
     for item in Cursor:
-        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_sci_fi.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
     conn.commit()
-    return index_data_action
+    return index_data_sci_fi
 
 @app.route('/movies/comedy', methods = ['GET'])
 def showComedyMovies():
     conn = sqlite3.connect("database.db")
     Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Comedy" AND Status = "Active"''').fetchall()
-    index_data_action = []
+    index_data_comedy = []
     for item in Cursor:
-        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_comedy.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
     conn.commit()
-    return index_data_action
+    return index_data_comedy
 
 @app.route('/movies/romance', methods = ['GET'])
 def showRomanticMovies():
     conn = sqlite3.connect("database.db")
     Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Romance" AND Status = "Active"''').fetchall()
-    index_data_action = []
+    index_data_romance = []
     for item in Cursor:
-        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_romance.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
     conn.commit()
-    return index_data_action
+    return index_data_romance
 
