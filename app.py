@@ -7,6 +7,7 @@ import collections
 import collections.abc
 import os
 import json
+from collections import OrderedDict
 
 app = Flask(__name__)
 
@@ -159,3 +160,23 @@ def showSearchResults():
         search_results.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
     conn.commit()
     return search_results
+
+@app.route('/movies/preview/<name>', methods = ['GET'])
+def showPreview(name):
+    # name = request.form["name"]
+    id = request.args.get("id")
+    conn = sqlite3.connect("database.db")
+    Cursor = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink, RentalCharges FROM Available_Movies 
+    WHERE ID = "{i}" AND SearchingName = "{n}" AND Status = "Active"'''.format(i = id, n = name)).fetchall()
+    preview_info = []
+    for item in Cursor:
+        preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4], "rent" : item[5]})
+        # The following query finds all other movies in the same category
+        similar_movies_query = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies 
+        WHERE Category = "{c}" AND Status = "Active" AND NOT SearchingName = "{n}"'''.format(c = item[2], n = name)).fetchall()
+        similar_movies = []
+        for similar in similar_movies_query:
+            similar_movies.append({"id" : similar[0], "title" : similar[1], "thumbnail" : os.path.abspath("Thumbnails/"+similar[2]), "rent" : similar[3]})
+        preview_info.append(similar_movies)
+    conn.commit()
+    return preview_info
