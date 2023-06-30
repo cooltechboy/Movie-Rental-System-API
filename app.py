@@ -148,3 +148,14 @@ def showRomanticMovies():
     conn.commit()
     return index_data_romance
 
+# Searches movies with the given keyword                            
+@app.route('/search', methods = ['GET'])
+def showSearchResults():
+    name = request.args.get("name")
+    conn = sqlite3.connect("database.db")
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE SearchingName LIKE "%{n}%" AND Status = "Active"'''.format(n = name)).fetchall()
+    search_results = []
+    for item in Cursor:
+        search_results.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+    conn.commit()
+    return search_results
