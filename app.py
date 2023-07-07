@@ -39,6 +39,11 @@ def token_required(f):
             return "You need to provide token to use the function!"
     return decorated
 
+rental_update = conn.execute("SELECT ID, UserName, Movie, RentedUpto FROM Rental_Records").fetchall()
+for item in rental_update:
+    if datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S') == item[3]:
+        conn.execute("UPDATE Rental_Records SET Status = 'Inactive' WHERE ID = '{i}' AND UserName = '{n}' AND Movie = '{m}'".format(i = item[0], n = item[1], m = item[2]))
+
 # Handles signup
 @app.route("/signup")
 def signup():
@@ -180,3 +185,25 @@ def showPreview(name):
         preview_info.append(similar_movies)
     conn.commit()
     return preview_info
+
+# Show active rentals for an user
+@app.route("/myprofile/rentals", methods = ['GET'])
+@token_required
+def showRentals(data):
+    name = data['user']
+    Active_rentals = conn.execute("SELECT ID, UserName, Movie, RentedUpto FROM Rental_Records WHERE UserName = '{n}' Status = 'Active'".format(n = name)).fetchall()
+    user_active_rentals = []
+    preview_data = []
+    if Active_rentals != []:
+        for item in Active_rentals:
+            if item[1] == name:
+                user_active_rentals.append(item[2])
+                for movie in user_active_rentals:
+                    movie_details = conn.execute("SELECT ID, MovieName, Category, Thumbnail_Filename FROM Available_Movies WHERE MovieName = '{m}'".format(m = movie)).fetchall()
+                    for each_movie in movie_details:
+                        preview_data.append({"id" : each_movie[0], "title" : each_movie[1], "category" : each_movie[2], "thumbnail" : os.path.abspath("Thumbnails/"+each_movie[3]), "rental_validity" : item[3]})
+            else:
+                return "You don't have any active rental!"
+    else:
+        return "There is no active rental for any user!"
+    return preview_data
