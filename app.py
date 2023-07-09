@@ -8,6 +8,8 @@ import collections.abc
 import os
 import json
 from collections import OrderedDict
+from werkzeug.utils import secure_filename
+import razorpay
 
 app = Flask(__name__)
 
@@ -18,6 +20,11 @@ Thumbnail_Folder = "Thumbnails"
 
 app.config['Thumbnail_Folder'] = Thumbnail_Folder
 app.secret_key = "confidential_info"
+
+razorpay_key_id = "rzp_test_07MP3hhWLRTaNl"
+razorpay_key_secret = "ovABod8KhiKm9znjKWIwHzYO"
+client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+client.set_app_details({"title" : "Movie Rental API", "version" : "1"})
 
 # Handles token
 def token_required(f):
@@ -207,3 +214,57 @@ def showRentals(data):
     else:
         return "There is no active rental for any user!"
     return preview_data
+'''The rental status update function will run when the user tries to access its active rentals.
+Use datetime.timedelta to set the duration for rental.'''
+
+'''Razorpay payment gateway integration.
+pip install razorpay
+Import it
+create client for every user when tries to rent a movie.
+Create order.
+Add checkout options.
+Verify payment with payment signature.'''
+
+@app.route("/movies/rent/", methods = ['POST'])
+@token_required
+def rentMovie(data):
+    id = request.json["id"]
+    price = int(request.json["price"])
+    name = data['user']
+    movie = request.json["movie"]
+    orderReceipt = f"{name}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
+    note = f"{movie}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
+    orderdata = {
+        "amount" : price*100,
+        "currency" : "USD",
+        "receipt" : orderReceipt,
+        "notes" : {
+            "movie" : note,
+            "user" : name
+        }
+    }
+    client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+    payment = client.order.create(data=orderdata)
+    return payment
+
+
+@app.route("/admin/movies/add", methods = ['POST'])
+@token_required
+def adminAddMovie(data):
+    if request.method == 'POST':
+        name = data['user']
+        moviename = request.form['moviename']
+        searchingname = request.form['searchingname']
+        category = request.form['category']
+        file = request.files['file']
+        trailer = request.form['trailer']
+        rent = request.form['rent']
+        conn = sqlite3.connect("database.db")
+        Admins = conn.execute("SELECT AdminUsername From Admin_Details WHERE Status = 'Active'").fetchall()
+        if name in (item[0] for item in Admins):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['Thumbnail_Folder'],filename))
+            conn.execute('''INSERT INTO Available_Movies (MovieName, SearchingName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month, Status) 
+                        VALUES ('{m}', '{s}', '{c}', '{f}', '{t}', '{r}', 'Active')'''.format(m = moviename, s = searchingname, c = category, f = filename, t = trailer, r = rent))
+            conn.commit()
+    return "File and details saved successfully!"
