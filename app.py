@@ -225,27 +225,9 @@ Create order.
 Add checkout options.
 Verify payment with payment signature.'''
 
-@app.route("/movies/rent/", methods = ['POST'])
-@token_required
-def rentMovie(data):
-    id = request.json["id"]
-    price = int(request.json["price"])
-    name = data['user']
-    movie = request.json["movie"]
-    orderReceipt = f"{name}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
-    note = f"{movie}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
-    orderdata = {
-        "amount" : price*100,
-        "currency" : "USD",
-        "receipt" : orderReceipt,
-        "notes" : {
-            "movie" : note,
-            "user" : name
-        }
-    }
-    client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
-    payment = client.order.create(data=orderdata)
-    return payment
+@app.route("/movies/rent")
+def rentMovie():
+    return render_template('app.html')
 
 
 @app.route("/admin/movies/add", methods = ['POST'])
@@ -268,3 +250,36 @@ def adminAddMovie(data):
                         VALUES ('{m}', '{s}', '{c}', '{f}', '{t}', '{r}', 'Active')'''.format(m = moviename, s = searchingname, c = category, f = filename, t = trailer, r = rent))
             conn.commit()
     return "File and details saved successfully!"
+
+
+@app.route("/movies/rent/payment", methods = ['POST'])
+def createRentOrder():
+    if request.method == 'POST':
+        id = request.form["id"]
+        price = int(request.form["price"])
+        name = request.form['user']
+        movie = request.form["movie"]
+        orderReceipt = f"{name}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
+        orderDate =  datetime.date.today().strftime('%m-%d-%Y')
+        orderdata = {
+            "amount" : price*100,
+            "currency" : "USD",
+            "receipt" : orderReceipt,
+            "notes" : {
+                "movie" : movie,
+                "user" : name,
+                "orderDate" : orderDate
+            }
+        }
+        client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        payment = client.order.create(data=orderdata)
+            
+        return render_template('payment.html', payment=payment)
+    
+
+@app.route("/payment/success", methods = ['POST'])
+def successPayment():
+    if request.method == 'POST':
+        responseData = request.form['responseData']
+        print(responseData)
+        return render_template('success.html')
