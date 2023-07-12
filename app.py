@@ -173,13 +173,29 @@ def showPreview(name):
     # name = request.form["name"]
     id = request.args.get("id")
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink, RentalCharges FROM Available_Movies 
+    Cursor = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month FROM Available_Movies 
     WHERE ID = "{i}" AND SearchingName = "{n}" AND Status = "Active"'''.format(i = id, n = name)).fetchall()
+    if request.headers:
+        @token_required
+        def findRentals(data):
+            username =  data['user']
+            SearchResults = conn.execute("SELECT UserName, Movie FROM Rental_Records WHERE UserName = '{n}' AND Status = 'Active'".format(n = username)).fetchall()
+            RentedMovies = []
+            for item in SearchResults:
+                RentedMovies.append(item[1])
+            return RentedMovies
+        ActiveRentals = findRentals()
+    elif not request.headers:
+        pass
+
     preview_info = []
     for item in Cursor:
-        preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4], "rent" : item[5]})
+        if item[1] in ActiveRentals:
+            preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4]})
+        else:
+            preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4], "rent" : item[5]})
         # The following query finds all other movies in the same category
-        similar_movies_query = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies 
+        similar_movies_query = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies 
         WHERE Category = "{c}" AND Status = "Active" AND NOT SearchingName = "{n}"'''.format(c = item[2], n = name)).fetchall()
         similar_movies = []
         for similar in similar_movies_query:
