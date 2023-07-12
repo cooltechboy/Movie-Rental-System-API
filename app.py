@@ -46,11 +46,6 @@ def token_required(f):
             return "You need to provide token to use the function!"
     return decorated
 
-rental_update = conn.execute("SELECT ID, UserName, Movie, RentedUpto FROM Rental_Records").fetchall()
-for item in rental_update:
-    if datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S') == item[3]:
-        conn.execute("UPDATE Rental_Records SET Status = 'Inactive' WHERE ID = '{i}' AND UserName = '{n}' AND Movie = '{m}'".format(i = item[0], n = item[1], m = item[2]))
-
 # Handles signup
 @app.route("/signup")
 def signup():
@@ -198,6 +193,11 @@ def showPreview(name):
 @token_required
 def showRentals(data):
     name = data['user']
+    conn = sqlite3.connect('database.db')
+    rental_update = conn.execute("SELECT ID, UserName, Movie, RentedUpto FROM Rental_Records WHERE UserName = '{n}'".format(n = name)).fetchall()
+    for item in rental_update:
+        if datetime.date.today().strftime('%m-%d-%Y') == datetime.datetime.strptime(item[3], '%m-%d-%Y'):
+            conn.execute("UPDATE Rental_Records SET Status = 'Inactive' WHERE UserName = '{n}' AND RentedUpto = '{d}'".format(n = name, d = datetime.date.today().strftime('%m-%d-%Y')))
     Active_rentals = conn.execute("SELECT ID, UserName, Movie, RentedUpto FROM Rental_Records WHERE UserName = '{n}' Status = 'Active'".format(n = name)).fetchall()
     user_active_rentals = []
     preview_data = []
@@ -214,22 +214,13 @@ def showRentals(data):
     else:
         return "There is no active rental for any user!"
     return preview_data
-'''The rental status update function will run when the user tries to access its active rentals.
-Use datetime.timedelta to set the duration for rental.'''
 
-'''Razorpay payment gateway integration.
-pip install razorpay
-Import it
-create client for every user when tries to rent a movie.
-Create order.
-Add checkout options.
-Verify payment with payment signature.'''
-
+'''HTML template with a form to create movie rental order. In real case the necessary details will be passed as a JSON object to the request.'''
 @app.route("/movies/rent")
 def rentMovie():
     return render_template('app.html')
 
-
+# Add movie function to add movie. Form needs to be used to pass data.
 @app.route("/admin/movies/add", methods = ['POST'])
 @token_required
 def adminAddMovie(data):
@@ -251,7 +242,7 @@ def adminAddMovie(data):
             conn.commit()
     return "File and details saved successfully!"
 
-
+# Creates Razorpay order for renting a movie. Collects form data from app.html
 @app.route("/movies/rent/payment", methods = ['POST'])
 def createRentOrder():
     if request.method == 'POST':
@@ -276,10 +267,35 @@ def createRentOrder():
             
         return render_template('payment.html', payment=payment)
     
-
+# Verifies payment signature and provides rental access to the movie. Runs JS from payment.html
 @app.route("/payment/success", methods = ['POST'])
 def successPayment():
     if request.method == 'POST':
-        responseData = request.form['responseData']
-        print(responseData)
-        return render_template('success.html')
+        razorpay_payment_id = request.form['razorpay_payment_id']
+        razorpay_order_id = request.form['razorpay_order_id']
+        razorpay_signature = request.form['razorpay_signature']
+        responseData = {
+            "razorpay_payment_id" : razorpay_payment_id,
+            "razorpay_order_id" : razorpay_order_id,
+            "razorpay_signature" : razorpay_signature
+        }
+        client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        verify = client.utility.verify_payment_signature({
+        'razorpay_order_id': razorpay_order_id,
+        'razorpay_payment_id': razorpay_payment_id,
+        'razorpay_signature': razorpay_signature
+        })
+        delta = datetime.timedelta(days=30)
+        if verify:
+            orderDetails = client.order.fetch(razorpay_order_id)
+            paymentDetails = client.order.payments(razorpay_order_id)
+            print(orderDetails["notes"])
+            Movie = orderDetails["notes"]["movie"]
+            username = orderDetails["notes"]["user"]
+            rentedOn = datetime.datetime.strptime(orderDetails["notes"]["orderDate"], '%m-%d-%Y')
+            rentedUpto = rentedOn + delta
+            conn = sqlite3.connect('database.db')
+            entry = conn.execute('''INSERT INTO Rental_Records (UserName, Movie, RentedOn, RentedUpto, Status, OrderID, PaymentID) 
+                         VALUES ('{n}', '{m}', '{o}', '{u}', 'Active', '{OI}', '{PI}')'''.format(n = username, m = Movie, o = rentedOn, u = rentedUpto, OI = razorpay_order_id, PI = razorpay_payment_id))
+            conn.commit()
+            return entry.fetchall()
