@@ -289,7 +289,6 @@ def successPayment():
         if verify:
             orderDetails = client.order.fetch(razorpay_order_id)
             paymentDetails = client.order.payments(razorpay_order_id)
-            print(orderDetails["notes"])
             Movie = orderDetails["notes"]["movie"]
             username = orderDetails["notes"]["user"]
             rentedOn = datetime.datetime.strptime(orderDetails["notes"]["orderDate"], '%m-%d-%Y')
@@ -297,5 +296,10 @@ def successPayment():
             conn = sqlite3.connect('database.db')
             entry = conn.execute('''INSERT INTO Rental_Records (UserName, Movie, RentedOn, RentedUpto, Status, OrderID, PaymentID) 
                          VALUES ('{n}', '{m}', '{o}', '{u}', 'Active', '{OI}', '{PI}')'''.format(n = username, m = Movie, o = rentedOn, u = rentedUpto, OI = razorpay_order_id, PI = razorpay_payment_id))
+            newRental = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink FROM Available_Movies 
+                        WHERE MovieName = "{m}" AND Status = "Active"'''.format(m = Movie)).fetchall()
+            newRentalPreview = []
+            for item in newRental:
+                newRentalPreview.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4]})
             conn.commit()
-            return entry.fetchall()
+            return newRentalPreview
