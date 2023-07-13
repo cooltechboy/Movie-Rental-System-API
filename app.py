@@ -99,7 +99,7 @@ def login():
 @app.route('/', methods = ['GET'])
 def showAll():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Status = "Active"''').fetchall()
     index_data = []
     for item in Cursor:
         index_data.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -109,7 +109,7 @@ def showAll():
 @app.route('/movies/action', methods = ['GET'])
 def showActionMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Action" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Action" AND Status = "Active"''').fetchall()
     index_data_action = []
     for item in Cursor:
         index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -119,7 +119,7 @@ def showActionMovies():
 @app.route('/movies/horror', methods = ['GET'])
 def showHorrorMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Horror" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Horror" AND Status = "Active"''').fetchall()
     index_data_horror = []
     for item in Cursor:
         index_data_horror.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -129,7 +129,7 @@ def showHorrorMovies():
 @app.route('/movies/sci-fi', methods = ['GET'])
 def showSciFiMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Sci-Fi" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Sci-Fi" AND Status = "Active"''').fetchall()
     index_data_sci_fi = []
     for item in Cursor:
         index_data_sci_fi.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -139,7 +139,7 @@ def showSciFiMovies():
 @app.route('/movies/comedy', methods = ['GET'])
 def showComedyMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Comedy" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Comedy" AND Status = "Active"''').fetchall()
     index_data_comedy = []
     for item in Cursor:
         index_data_comedy.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -149,7 +149,7 @@ def showComedyMovies():
 @app.route('/movies/romance', methods = ['GET'])
 def showRomanticMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE Category = "Romance" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Romance" AND Status = "Active"''').fetchall()
     index_data_romance = []
     for item in Cursor:
         index_data_romance.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -161,7 +161,7 @@ def showRomanticMovies():
 def showSearchResults():
     name = request.args.get("name")
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges FROM Available_Movies WHERE SearchingName LIKE "%{n}%" AND Status = "Active"'''.format(n = name)).fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE SearchingName LIKE "%{n}%" AND Status = "Active"'''.format(n = name)).fetchall()
     search_results = []
     for item in Cursor:
         search_results.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
@@ -319,3 +319,77 @@ def successPayment():
                 newRentalPreview.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4]})
             conn.commit()
             return newRentalPreview
+        
+
+@app.route("/membership/order")
+def membership():
+    return render_template('membershipOrder.html')
+
+
+@app.route("/membership/order/payment", methods = ['POST'])
+def createMembershipOrder():
+    if request.method == 'POST':
+        username = request.form.get("username")
+        userEmail = request.form.get("userEmail")
+        if request.form.get("gridRadios") == "basicMembership":
+            membership = 'Basic'
+            price = 5
+        elif request.form.get("gridRadios") != "basicMembership":
+            if request.form.get("gridRadios") == "premiumMembership":
+                membership = 'Premium'
+                price = 8
+        orderReceipt = f"{username}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
+        orderDate =  datetime.date.today().strftime('%m-%d-%Y')
+        orderdata = {
+            "amount" : price*100,
+            "currency" : "USD",
+            "receipt" : orderReceipt,
+            "notes" : {
+                "membership" : membership,
+                "username" : username,
+                "userEmail" : userEmail,
+                "orderDate" : orderDate
+            }
+        }
+        client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        payment = client.order.create(data=orderdata)
+            
+        return render_template('membershipPayment.html', payment=payment)
+    
+
+@app.route("/mermbership/payment/success", methods = ['POST'])
+def membershipPaymentSuccess():
+    if request.method == 'POST':
+        razorpay_payment_id = request.form['razorpay_payment_id']
+        razorpay_order_id = request.form['razorpay_order_id']
+        razorpay_signature = request.form['razorpay_signature']
+        responseData = {
+            "razorpay_payment_id" : razorpay_payment_id,
+            "razorpay_order_id" : razorpay_order_id,
+            "razorpay_signature" : razorpay_signature
+        }
+        client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+        verify = client.utility.verify_payment_signature({
+        'razorpay_order_id': razorpay_order_id,
+        'razorpay_payment_id': razorpay_payment_id,
+        'razorpay_signature': razorpay_signature
+        })
+        delta = datetime.timedelta(days=30)
+        if verify:
+            orderDetails = client.order.fetch(razorpay_order_id)
+            paymentDetails = client.order.payments(razorpay_order_id)
+            Membership = orderDetails["notes"]["membership"]
+            username = orderDetails["notes"]["username"]
+            userEmail = orderDetails["notes"]["userEmail"]
+            startedOn = datetime.datetime.strptime(orderDetails["notes"]["orderDate"], '%m-%d-%Y')
+            expiresOn = startedOn + delta
+            conn = sqlite3.connect('database.db')
+            entry = conn.execute('''INSERT INTO Membership_Records (UserName, UserEmail, MembershipType, StartedOn, ExpiresOn, Status, OrderID, PaymentID) 
+                         VALUES ('{n}', '{e}', '{m}', '{s}', '{x}', 'Active', '{OI}', '{PI}')'''.format(n = username, e = userEmail, m = Membership, s = startedOn, x = expiresOn, OI = razorpay_order_id, PI = razorpay_payment_id))
+            newRental = conn.execute('''SELECT UserName, UserEmail, MembershipType, StartedOn, ExpiresOn FROM Membership_Records 
+                        WHERE UserName = "{n}" AND Status = "Active"'''.format(n = username)).fetchall()
+            activeMembershipPreview = []
+            for item in newRental:
+                activeMembershipPreview.append({"username" : item[0], "userEmail" : item[1], "membership" : item[2], "startedOn" : item[3], "expiresOn" : item[4]})
+            conn.commit()
+            return activeMembershipPreview
