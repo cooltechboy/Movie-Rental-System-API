@@ -95,64 +95,97 @@ def login():
             return "Incorrect username or password!"
     else:
         return "Please enter username!"
-    
+
+# The home page that shows all the movies that are available for rental    
 @app.route('/', methods = ['GET'])
 def showAll():
-    conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Status = "Active"''').fetchall()
-    index_data = []
-    for item in Cursor:
-        index_data.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
-    conn.commit()
-    return index_data
+    if request.method == 'GET':
+        conn = sqlite3.connect("database.db")
+        Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Basic_Members, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Status = "Active"''').fetchall()
+        if not request.headers:
+            membership = ""
+            pass
+        elif request.headers:
+            @token_required
+            def findMembership(data):
+                username = data['user']
+                membership_details = conn.execute('''SELECT UserName, MembershipType FROM Membership_Records WHERE UserName = '{n}' AND Status = "Active"'''.format(n = username)).fetchall()
+                if membership_details != "":
+                    for item in membership_details:
+                        if item[1] == "Premium":
+                            membershipType = "Premium"
+                        elif item[1] == "Basic":
+                            membershipType = "Basic"
+                else:
+                    pass
+                return membershipType
+            membership = findMembership()
 
+        index_data = []
+        if membership != "" and membership == "Premium":
+            for item in Cursor:
+                index_data.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rentForPremiumMembers" : item[5]})
+        elif membership != "" and membership == "Basic":
+            for item in Cursor:
+                index_data.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rentForBasicMembers" : item[4], "rentForPremiumMembers" : item[5]})
+        else:
+            for item in Cursor:
+                index_data.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[5]})
+        conn.commit()
+        return index_data
+
+# The web page that shows all the action movies that are available for rental 
 @app.route('/movies/action', methods = ['GET'])
 def showActionMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Action" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Category = "Action" AND Status = "Active"''').fetchall()
     index_data_action = []
     for item in Cursor:
-        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_action.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return index_data_action
 
+# The web page that shows all the horror movies that are available for rental 
 @app.route('/movies/horror', methods = ['GET'])
 def showHorrorMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Horror" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Category = "Horror" AND Status = "Active"''').fetchall()
     index_data_horror = []
     for item in Cursor:
-        index_data_horror.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_horror.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return index_data_horror
 
+# The web page that shows all the sci-fi movies that are available for rental 
 @app.route('/movies/sci-fi', methods = ['GET'])
 def showSciFiMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Sci-Fi" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Category = "Sci-Fi" AND Status = "Active"''').fetchall()
     index_data_sci_fi = []
     for item in Cursor:
-        index_data_sci_fi.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_sci_fi.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return index_data_sci_fi
 
+# The web page that shows all the comedy movies that are available for rental 
 @app.route('/movies/comedy', methods = ['GET'])
 def showComedyMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Comedy" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Category = "Comedy" AND Status = "Active"''').fetchall()
     index_data_comedy = []
     for item in Cursor:
-        index_data_comedy.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_comedy.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return index_data_comedy
 
+# The web page that shows all the romantic movies that are available for rental 
 @app.route('/movies/romance', methods = ['GET'])
 def showRomanticMovies():
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE Category = "Romance" AND Status = "Active"''').fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE Category = "Romance" AND Status = "Active"''').fetchall()
     index_data_romance = []
     for item in Cursor:
-        index_data_romance.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        index_data_romance.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return index_data_romance
 
@@ -161,19 +194,20 @@ def showRomanticMovies():
 def showSearchResults():
     name = request.args.get("name")
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies WHERE SearchingName LIKE "%{n}%" AND Status = "Active"'''.format(n = name)).fetchall()
+    Cursor = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies WHERE SearchingName LIKE "%{n}%" AND Status = "Active"'''.format(n = name)).fetchall()
     search_results = []
     for item in Cursor:
-        search_results.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3]})
+        search_results.append({"id" : item[0], "title" : item[1], "thumbnail" : os.path.abspath("Thumbnails/"+item[2]), "rent" : item[3], "rentForPremiumMembers" : item[4]})
     conn.commit()
     return search_results
 
+# Shows the preview of a particular movie along with all relevant details, rental charges, and other movies from the same category
 @app.route('/movies/preview/<name>', methods = ['GET'])
 def showPreview(name):
     # name = request.form["name"]
     id = request.args.get("id")
     conn = sqlite3.connect("database.db")
-    Cursor = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month FROM Available_Movies 
+    Cursor = conn.execute('''SELECT ID, MovieName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies 
     WHERE ID = "{i}" AND SearchingName = "{n}" AND Status = "Active"'''.format(i = id, n = name)).fetchall()
     if request.headers:
         @token_required
@@ -193,13 +227,13 @@ def showPreview(name):
         if item[1] in ActiveRentals:
             preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4]})
         else:
-            preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4], "rent" : item[5]})
+            preview_info.append({"id" : item[0], "title" : item[1], "category" : item[2], "thumbnail" : os.path.abspath("Thumbnails/"+item[3]), "trailer" : item[4], "rent" : item[5], "rentForPremiumMembers" : item[6]})
         # The following query finds all other movies in the same category
-        similar_movies_query = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month FROM Available_Movies 
+        similar_movies_query = conn.execute('''SELECT ID, MovieName, Thumbnail_Filename, RentalCharges_in_$_per_month, RentalCharges_For_Premium_Members FROM Available_Movies 
         WHERE Category = "{c}" AND Status = "Active" AND NOT SearchingName = "{n}"'''.format(c = item[2], n = name)).fetchall()
         similar_movies = []
         for similar in similar_movies_query:
-            similar_movies.append({"id" : similar[0], "title" : similar[1], "thumbnail" : os.path.abspath("Thumbnails/"+similar[2]), "rent" : similar[3]})
+            similar_movies.append({"id" : similar[0], "title" : similar[1], "thumbnail" : os.path.abspath("Thumbnails/"+similar[2]), "rent" : similar[3], "rentForPremiumMembers" : similar[4]})
         preview_info.append(similar_movies)
     conn.commit()
     return preview_info
@@ -247,14 +281,16 @@ def adminAddMovie(data):
         category = request.form['category']
         file = request.files['file']
         trailer = request.form['trailer']
-        rent = request.form['rent']
+        rent = float(request.form['rent'])
+        rentForBasicMembers = rent*0.8
+        rentForPremiumMembers = rent*0.5
         conn = sqlite3.connect("database.db")
         Admins = conn.execute("SELECT AdminUsername From Admin_Details WHERE Status = 'Active'").fetchall()
         if name in (item[0] for item in Admins):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['Thumbnail_Folder'],filename))
-            conn.execute('''INSERT INTO Available_Movies (MovieName, SearchingName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month, Status) 
-                        VALUES ('{m}', '{s}', '{c}', '{f}', '{t}', '{r}', 'Active')'''.format(m = moviename, s = searchingname, c = category, f = filename, t = trailer, r = rent))
+            conn.execute('''INSERT INTO Available_Movies (MovieName, SearchingName, Category, Thumbnail_Filename, TrailerLink, RentalCharges_in_$_per_month, RentalCharges_For_Basic_Members, RentalCharges_For_Premium_Members, Status) 
+                        VALUES ('{m}', '{s}', '{c}', '{f}', '{t}', '{r}', '{b}', '{p}', 'Active')'''.format(m = moviename, s = searchingname, c = category, f = filename, t = trailer, r = rent, b = rentForBasicMembers, p = rentForPremiumMembers))
             conn.commit()
     return "File and details saved successfully!"
 
@@ -263,7 +299,7 @@ def adminAddMovie(data):
 def createRentOrder():
     if request.method == 'POST':
         id = request.form["id"]
-        price = int(request.form["price"])
+        price = float(request.form["price"])
         name = request.form['user']
         movie = request.form["movie"]
         orderReceipt = f"{name}-{datetime.datetime.utcnow().strftime('%B-%d-%Y-%H-%M-%S')}"
@@ -320,12 +356,12 @@ def successPayment():
             conn.commit()
             return newRentalPreview
         
-
+# HTML template with a form to create movie membership order. In real case the necessary details will be passed as a JSON object to the request.
 @app.route("/membership/order")
 def membership():
     return render_template('membershipOrder.html')
 
-
+# Creates Razorpay order for purchasing a membership. Collects form data from membershipOrder.html
 @app.route("/membership/order/payment", methods = ['POST'])
 def createMembershipOrder():
     if request.method == 'POST':
@@ -356,7 +392,7 @@ def createMembershipOrder():
             
         return render_template('membershipPayment.html', payment=payment)
     
-
+# Verifies payment signature and provides membership to the user. Runs JS from membershipPayment.html
 @app.route("/mermbership/payment/success", methods = ['POST'])
 def membershipPaymentSuccess():
     if request.method == 'POST':
