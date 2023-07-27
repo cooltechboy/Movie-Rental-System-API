@@ -21,8 +21,6 @@ Thumbnail_Folder = "Thumbnails"
 app.config['Thumbnail_Folder'] = Thumbnail_Folder
 app.secret_key = "confidential_info"
 
-razorpay_key_id = "rzp_test_07MP3hhWLRTaNl"
-razorpay_key_secret = "ovABod8KhiKm9znjKWIwHzYO"
 client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
 client.set_app_details({"title" : "Movie Rental API", "version" : "1"})
 
